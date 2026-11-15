@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "id": "plugin-music",
+  "name": "Apple Music (Adam FairPlay Lossless)",
+  "version": "0.1.0",
+  "abi_version": 1,
+  "kind": "workspace",
+  "domain": "media",
+  "author": "OmniDesk",
+  "description": "Headless Apple Music (Adam Go engine + FairPlay ALAC 24bit/192kHz) workspace with native Apple ID/2FA authentication, catalog search, personalised feeds, library playlists, MPVCore lossless/MV playback, native/LRCLIB bilingual lyrics, and AI phrase-level explanation.",
+  "homepage": "https://github.com/ZJFILOVE/omnidesk-plugin-music",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZJFILOVE/omnidesk-plugin-music.git",
+    "branch": "main"
+  },
+  "build": {
+    "system": "cmake",
+    "entry_target": "plugin_music",
+    "output_lib": "libplugin_music.so",
+    "cmake_args": [],
+    "verify_cmd": "ctest --output-on-failure"
+  },
+  "provides": [
+    "media.source.v1",
+    "media.lyrics.v1"
+  ],
+  "consumes": [
+    "llm.translate.v1",
+    "llm.chat.v1",
+    "ai.agent.v1",
+    "web.cookies.v1"
+  ],
+  "permissions": [
+    "config:read",
+    "config:write",
+    "secret:vault",
+    "filesystem.read",
+    "filesystem.write",
+    "network:wan",
+    "network:loopback",
+    "process:adam-engine",
+    "ui.workspace",
+    "ui.dock"
+  ],
+  "config_schema": [
+    {
+      "key": "engine_bin",
+      "label": "Adam Go 引擎路径 (可选)",
+      "type": "string",
+      "default": "",
+      "description": "留空时自动探测 ADAM_ENGINE_BIN 或 /home/zhu/Projects/apple-music-online/electron/dist/resources/engine",
+      "required": false
+    },
+    {
+      "key": "engine_data_dir",
+      "label": "Adam 引擎数据目录 (可选)",
+      "type": "string",
+      "default": "",
+      "description": "存放 config.yaml 与会话引用的工作目录；留空默认复用 ~/.config/adam/engine-data",
+      "required": false
+    },
+    {
+      "key": "engine_port",
+      "label": "Adam 引擎回环端口",
+      "type": "int",
+      "default": 20025,
+      "description": "Adam Go 无头引擎本地 HTTPS 监听端口（默认 20025）",
+      "required": false
+    },
+    {
+      "key": "auto_launch_engine",
+      "label": "自动无头拉起 Adam Go 引擎",
+      "type": "bool",
+      "default": true,
+      "description": "当回环端口未就绪时，插件在后台直接启动无头 Go 引擎（不启动 Electron 界面）",
+      "required": false
+    },
+    {
+      "key": "storefront",
+      "label": "Apple Music 地区码",
+      "type": "string",
+      "default": "us",
+      "description": "两字母 Catalog 地区码（如 us、cn、jp、hk、tw）；DRM 登录后优先按账号地区解析",
+      "required": false
+    },
+    {
+      "key": "language",
+      "label": "目录元数据语言",
+      "type": "string",
+      "default": "zh-CN",
+      "description": "请求 Apple Music 推荐/搜索/详情接口时使用的语言代码（如 zh-CN、en-US）",
+      "required": false
+    },
+    {
+      "key": "lossless_enabled",
+      "label": "启用 ALAC 无损音质",
+      "type": "bool",
+      "default": true,
+      "description": "通过 FairPlay DRM 解密本地无损 ALAC 音频流（最高 24bit/192kHz）并交给 MPVCore 播放",
+      "required": false
+    },
+    {
+      "key": "hires_enabled",
+      "label": "启用 Hi-Res 最高采样率",
+      "type": "bool",
+      "default": true,
+      "description": "允许请求 96kHz/192kHz Hi-Res ALAC；关闭时上限为 44.1kHz/16-bit",
+      "required": false
+    },
+    {
+      "key": "enable_lrclib",
+      "label": "未命中原生歌词时回退 LRCLIB",
+      "type": "bool",
+      "default": true,
+      "description": "优先使用 Adam /api/v1/lyrics/{id} 原生歌词；未命中时按歌名、歌手、专辑与时长精确查 LRCLIB",
+      "required": false
+    },
+    {
+      "key": "auto_translate_lyrics",
+      "label": "自动调用 AI 补全双语歌词",
+      "type": "bool",
+      "default": true,
+      "description": "检测到缺失中文译文的外语歌词行时，自动调用 llm.translate.v1 / llm.chat.v1 补全并缓存",
+      "required": false
+    },
+    {
+      "key": "target_language",
+      "label": "歌词翻译目标语言",
+      "type": "select",
+      "default": "zh-CN",
+      "options": [
+        "zh-CN",
+        "zh-TW",
+        "en",
+        "ja"
+      ],
+      "description": "双语歌词与逐句语言精讲的目标语言",
+      "required": false
+    },
+    {
+      "key": "lyrics_display_mode",
+      "label": "默认歌词展示模式",
+      "type": "select",
+      "default": "bilingual",
+      "options": [
+        "bilingual",
+        "original",
+        "translation"
+      ],
+      "description": "bilingual=原文与译文双语对照；original=仅原文；translation=译文优先",
+      "required": false
+    },
+    {
+      "key": "translation_batch_size",
+      "label": "AI 歌词翻译每批行数",
+      "type": "int",
+      "default": 24,
+      "description": "批量翻译提交给 LLM 的歌词行数（范围 4-60）",
+      "required": false
+    },
+    {
+      "key": "media_user_token",
+      "label": "Web Media-User-Token (可选)",
+      "type": "secret",
+      "default": "",
+      "description": "可选：用于与网页端同步个人资料库/推荐的 media-user-token（写入 0600 SecretVault）",
+      "required": false
+    },
+    {
+      "key": "proxy",
+      "label": "公网 API 代理 (可选)",
+      "type": "string",
+      "default": "",
+      "description": "可选 HTTP/SOCKS5 代理（如 http://127.0.0.1:7890）；127.0.0.1 引擎通信始终直连",
+      "required": false
+    }
+  ]
+}
